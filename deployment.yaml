@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextjs-deployment
+  labels:
+    app: nextjs
+spec:
+  replicas: 1 # Vì VPS 1GB RAM nên chỉ chạy 1 Pod
+  selector:
+    matchLabels:
+      app: nextjs
+  template:
+    metadata:
+      labels:
+        app: nextjs
+    spec:
+      containers:
+      - name: nextjs-app
+        image: cuongwork/nextjs-app:latest # Thay bằng tên image của bạn trên Docker Hub
+        ports:
+        - containerPort: 3000
+        resources:
+          limits:
+            memory: "512Mi" # Giới hạn RAM để tránh làm sập VPS
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nextjs-service
+spec:
+  selector:
+    app: nextjs # Phải khớp hoàn toàn với label 'app' ở trên
+  ports:
+    - protocol: TCP
+      port: 80       # Cổng mà Service sẽ lắng nghe
+      targetPort: 3000 # Cổng mà ứng dụng Next.js của bạn đang chạy
+  type: ClusterIP # Sử dụng IP nội bộ trong Cluster

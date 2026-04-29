@@ -30,8 +30,19 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.VPS_PORT }} # Cổng bạn đã đổi (ví dụ 2222)
           script: |
+            # 1. Kéo bản build mới nhất về để sẵn trong máy
             docker pull ${{ secrets.DOCKER_USERNAME }}/nextjs-app:latest
-            docker stop nextjs-app || true
-            docker rm nextjs-app || true
-            docker run -d --name nextjs-app -p 3000:3000 ${{ secrets.DOCKER_USERNAME }}/nextjs-app:latest
-            docker image prune -a -f
+
+            # 2. Tạo hoặc cập nhật file deployment trực tiếp từ GitHub dán vào VPS
+            cat <<EOF > ~/deployment.yaml
+            $(cat deployment.yaml)
+            EOF
+
+            # 3. Áp dụng vào K8s (Dùng sudo nếu user không có quyền)
+            sudo kubectl apply -f ~/deployment.yaml
+
+            # 4. Ép K8s cập nhật Image mới ngay lập tức
+            sudo kubectl rollout restart deployment nextjs-deployment
+
+            # 5. Dọn dẹp rác Docker để tiết kiệm RAM/SSD
+            docker system prune -f
